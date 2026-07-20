@@ -1,0 +1,14 @@
+---
+title: {{{frontmatterTitleYaml}}}
+description: {{{packageDescriptionYaml}}}
+---
+
+# {{title}} {{symbolTypeLabel}}
+{{#symbols}}
+
+{{#description}}{{description}}{{/description}}{{^description}}UNDOCUMENTED{{/description}}
+
+```{{language}}
+{{{signature}}}
+```
+{{/symbols}}

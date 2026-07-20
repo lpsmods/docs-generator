@@ -1,0 +1,55 @@
+# {{title}}
+{{#description}}
+{{description}}
+{{/description}}
+{{^hasSymbols}}
+_No documented symbols found._
+{{/hasSymbols}}
+{{#symbols}}
+## {{name}}
+
+**{{kind}}** · lines {{location.startLine}}–{{location.endLine}}
+{{#sourcePath}}
+Source: `{{{sourcePath}}}`
+{{/sourcePath}}
+
+```{{language}}
+{{{signature}}}
+```
+{{#description}}
+
+{{description}}
+{{/description}}
+{{#parameters.length}}
+
+### Parameters
+{{#parameters}}
+
+- `{{{.}}}`
+{{/parameters}}
+{{/parameters.length}}
+{{#members.length}}
+
+### Members
+{{#members}}
+
+#### {{name}}
+
+```{{language}}
+{{{signature}}}
+```
+{{#description}}
+
+{{description}}
+{{/description}}
+{{#parameters.length}}
+
+##### Parameters
+{{#parameters}}
+
+- `{{{.}}}`
+{{/parameters}}
+{{/parameters.length}}
+{{/members}}
+{{/members.length}}
+{{/symbols}}

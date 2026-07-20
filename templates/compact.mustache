@@ -1,0 +1,21 @@
+# {{title}}
+
+{{#description}}{{description}}
+
+{{/description}}{{#symbols}}
+## {{name}}
+
+```{{language}}
+{{{signature}}}
+```
+{{#description}}
+
+{{description}}
+{{/description}}
+{{#members}}
+
+- **{{name}}** — `{{{signature}}}`{{#description}}: {{description}}{{/description}}
+{{/members}}
+{{/symbols}}
+{{^hasSymbols}}_No documented symbols found._
+{{/hasSymbols}}

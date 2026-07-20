@@ -1,0 +1,45 @@
+---
+title: {{{frontmatterTitleYaml}}}
+description: {{{packageDescriptionYaml}}}
+---
+
+# {{title}} {{symbolTypeLabel}}
+{{#symbols}}
+{{#description}}
+
+{{description}}
+{{/description}}
+{{#parameterDetails.length}}
+
+## Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+{{#parameterDetails}}
+| `{{name}}` | {{type}} | {{description}} |
+{{/parameterDetails}}
+{{/parameterDetails.length}}
+{{#members.length}}
+
+## Methods
+
+{{#members}}- [{{name}}](#{{anchor}})
+{{/members}}
+{{#members}}
+
+### `{{name}}`
+
+{{#description}}{{description}}{{/description}}{{^description}}UNDOCUMENTED{{/description}}
+{{#parameterDetails.length}}
+
+#### Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+{{#parameterDetails}}
+| `{{name}}` | {{type}} | {{description}} |
+{{/parameterDetails}}
+{{/parameterDetails.length}}
+{{/members}}
+{{/members.length}}
+{{/symbols}}

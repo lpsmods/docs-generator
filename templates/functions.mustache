@@ -1,0 +1,22 @@
+---
+title: {{{frontmatterTitleYaml}}}
+description: {{{packageDescriptionYaml}}}
+---
+
+# Functions
+{{#functions}}
+
+## `{{name}}`
+
+{{#description}}{{description}}{{/description}}{{^description}}undocumented{{/description}}
+{{#parameterDetails.length}}
+
+### Parameters
+
+| Name | Type | Description |
+| ---- | ---- | ----------- |
+{{#parameterDetails}}
+| `{{name}}` | {{type}} | {{description}} |
+{{/parameterDetails}}
+{{/parameterDetails.length}}
+{{/functions}}
