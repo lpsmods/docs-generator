@@ -9,13 +9,18 @@
     "tree-sitter",
     "docgen"
   ],
+  "homepage": "https://docs.lpsmods.dev/@lpsmods/docs-generator",
+  "funding": "https://github.com/sponsors/legopitstop",
   "repository": {
     "type": "git",
-    "url": "docs-generator"
+    "url": "https://github.com/lpsmods/docs-generator"
+  },
+  "bugs": {
+    "url": "https://github.com/lpsmods/docs-generator/issues"
   },
   "license": "MIT",
   "author": "Legopitstop",
-  "type": "commonjs",
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
@@ -27,6 +32,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "lint": "eslint .",
     "test": "npm run build && vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "npm test",
@@ -43,10 +49,14 @@
     "tree-sitter-typescript": "^0.23.2"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/mustache": "^4.2.6",
     "@types/node": "^22.0.0",
     "@types/pacote": "^11.1.8",
+    "eslint": "^10.7.0",
+    "globals": "^17.7.0",
     "typescript": "^5.7.0",
+    "typescript-eslint": "^8.65.0",
     "vitest": "^4.1.10"
   },
   "engines": {

@@ -1,7 +1,7 @@
 import JavaScript from "tree-sitter-javascript";
 import Python from "tree-sitter-python";
 import TypeScript from "tree-sitter-typescript";
-import type { LanguageDefinition } from "./types";
+import type { LanguageDefinition } from "./types.js";
 
 function pythonStringContents(source: string): string {
   const value = source.trim();

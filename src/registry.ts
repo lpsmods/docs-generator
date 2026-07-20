@@ -5,13 +5,50 @@ import path from "node:path";
 import extractZip from "extract-zip";
 import pacote from "pacote";
 import * as tar from "tar";
-import { generateDirectory } from "./index";
-import type { GenerateRegistryPackageOptions } from "./types";
+import { generateDirectory } from "./index.js";
+import type { GenerateRegistryPackageOptions } from "./types.js";
 
 const DEFAULT_MAX_DOWNLOAD = 100 * 1024 * 1024;
+const DEFAULT_CACHE_TTL = 24 * 60 * 60 * 1000;
+
+interface CacheMetadata {
+  registry: "npm" | "pypi";
+  package: string;
+  name: string;
+  version?: string;
+  description?: string;
+  cachedAt: number;
+}
+
+export function getRegistryCacheDirectory(): string {
+  return path.resolve(".docs-generator-cache");
+}
 
 function safePackageName(spec: string): string {
   return spec.replace(/^@/, "").replace(/==|@/g, "-").replace(/[^a-zA-Z0-9._-]+/g, "-");
+}
+
+function cacheEntry(cacheDirectory: string, registry: string, spec: string): string {
+  const digest = createHash("sha256").update(`${registry}:${spec}`).digest("hex").slice(0, 16);
+  return path.join(cacheDirectory, registry, `${safePackageName(spec)}-${digest}`);
+}
+
+async function readCachedPackage(entry: string, ttl: number): Promise<CacheMetadata | undefined> {
+  try {
+    const metadata = JSON.parse(await fs.readFile(path.join(entry, "metadata.json"), "utf8")) as CacheMetadata;
+    if (Date.now() - metadata.cachedAt > ttl) return undefined;
+    if (!(await fs.stat(path.join(entry, "source"))).isDirectory()) return undefined;
+    return metadata;
+  } catch {
+    return undefined;
+  }
+}
+
+async function writeCachedPackage(entry: string, source: string, metadata: CacheMetadata): Promise<void> {
+  await fs.rm(entry, { recursive: true, force: true });
+  await fs.mkdir(entry, { recursive: true });
+  await fs.cp(source, path.join(entry, "source"), { recursive: true });
+  await fs.writeFile(path.join(entry, "metadata.json"), JSON.stringify(metadata, null, 2), "utf8");
 }
 
 function parsePyPISpec(spec: string): { name: string; version?: string } {
@@ -95,25 +132,50 @@ async function extractPyPI(spec: string, directory: string, maxDownloadBytes: nu
 export async function generateRegistryPackage(options: GenerateRegistryPackageOptions) {
   const temporaryDirectory = await fs.mkdtemp(path.join(tmpdir(), "docs-generator-package-"));
   const output = path.resolve(options.output ?? path.join("docs", safePackageName(options.package)));
+  const cacheDirectory = path.resolve(options.cacheDirectory ?? getRegistryCacheDirectory());
+  const entry = cacheEntry(cacheDirectory, options.registry, options.package);
   try {
     let source: string;
     let resolvedName = options.package;
     let resolvedVersion: string | undefined;
     let resolvedDescription: string | undefined;
-    if (options.registry === "npm") {
-      source = path.join(temporaryDirectory, "source");
-      const manifest = await pacote.manifest(options.package);
-      await pacote.extract(options.package, source);
-      resolvedName = manifest.name;
-      resolvedVersion = manifest.version;
-      const description = (manifest as unknown as { description?: unknown }).description;
-      resolvedDescription = typeof description === "string" ? description : undefined;
+    let cacheHit = false;
+    const cached = options.cache === false || options.refreshCache
+      ? undefined
+      : await readCachedPackage(entry, options.cacheTtlMs ?? DEFAULT_CACHE_TTL);
+    if (cached) {
+      source = path.join(entry, "source");
+      resolvedName = cached.name;
+      resolvedVersion = cached.version;
+      resolvedDescription = cached.description;
+      cacheHit = true;
     } else {
-      const extracted = await extractPyPI(options.package, temporaryDirectory, options.maxDownloadBytes ?? DEFAULT_MAX_DOWNLOAD);
-      source = extracted.source;
-      resolvedName = extracted.name;
-      resolvedVersion = extracted.version;
-      resolvedDescription = extracted.description;
+      if (options.registry === "npm") {
+        source = path.join(temporaryDirectory, "source");
+        const manifest = await pacote.manifest(options.package);
+        await pacote.extract(options.package, source);
+        resolvedName = manifest.name;
+        resolvedVersion = manifest.version;
+        const description = (manifest as unknown as { description?: unknown }).description;
+        resolvedDescription = typeof description === "string" ? description : undefined;
+      } else {
+        const extracted = await extractPyPI(options.package, temporaryDirectory, options.maxDownloadBytes ?? DEFAULT_MAX_DOWNLOAD);
+        source = extracted.source;
+        resolvedName = extracted.name;
+        resolvedVersion = extracted.version;
+        resolvedDescription = extracted.description;
+      }
+      if (options.cache !== false) {
+        await writeCachedPackage(entry, source, {
+          registry: options.registry,
+          package: options.package,
+          name: resolvedName,
+          version: resolvedVersion,
+          description: resolvedDescription,
+          cachedAt: Date.now()
+        });
+        source = path.join(entry, "source");
+      }
     }
     const result = await generateDirectory({
       ...options,
@@ -122,7 +184,14 @@ export async function generateRegistryPackage(options: GenerateRegistryPackageOp
       title: options.title ?? resolvedName,
       description: options.description ?? resolvedDescription
     });
-    return { ...result, registry: options.registry, package: resolvedName, version: resolvedVersion };
+    return {
+      ...result,
+      registry: options.registry,
+      package: resolvedName,
+      version: resolvedVersion,
+      cacheHit,
+      cacheDirectory: options.cache === false ? undefined : entry
+    };
   } finally {
     await fs.rm(temporaryDirectory, { recursive: true, force: true });
   }

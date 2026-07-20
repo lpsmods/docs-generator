@@ -18,6 +18,9 @@ export interface DocSymbol {
   kind: SymbolKind;
   name: string;
   anchor: string;
+  qualifiedName: string;
+  module: string;
+  visibility: "public";
   signature: string;
   description: string;
   parameters: string[];
@@ -28,6 +31,8 @@ export interface DocSymbol {
   language: string;
   sourcePath?: string;
   members: DocSymbol[];
+  extends: string[];
+  implements: string[];
 }
 
 export interface DocumentationModel {
@@ -96,6 +101,8 @@ export interface GenerateDirectoryOptions {
   view?: Record<string, unknown>;
   recursive?: boolean;
   ignore?: string[];
+  /** Generate llms.txt, llms-full.txt, manifest.json, and per-symbol agent pages. Defaults to true. */
+  agentDocs?: boolean;
 }
 
 export interface GeneratedPage {
@@ -106,6 +113,30 @@ export interface GeneratedPage {
   model: DocumentationModel;
 }
 
+export interface AgentSymbolRecord {
+  name: string;
+  qualifiedName: string;
+  kind: SymbolKind;
+  language: string;
+  module: string;
+  sourcePath?: string;
+  signature: string;
+  description: string;
+  parameters: DocParameter[];
+  returns?: string;
+  extends: string[];
+  implements: string[];
+  members: AgentSymbolRecord[];
+  documentationPath: string;
+}
+
+export interface AgentManifest {
+  schemaVersion: 1;
+  package: string;
+  description?: string;
+  symbols: AgentSymbolRecord[];
+}
+
 export type PackageRegistry = "npm" | "pypi";
 
 export interface GenerateRegistryPackageOptions extends Omit<GenerateDirectoryOptions, "input"> {
@@ -114,4 +145,12 @@ export interface GenerateRegistryPackageOptions extends Omit<GenerateDirectoryOp
   package: string;
   /** Maximum accepted PyPI artifact size in bytes. Defaults to 100 MiB. */
   maxDownloadBytes?: number;
+  /** Persistent extracted-source cache directory. */
+  cacheDirectory?: string;
+  /** Cache lifetime in milliseconds. Defaults to 24 hours. */
+  cacheTtlMs?: number;
+  /** Disable the persistent extracted-source cache. */
+  cache?: boolean;
+  /** Download and replace the cached package immediately. */
+  refreshCache?: boolean;
 }

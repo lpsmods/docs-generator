@@ -57,6 +57,7 @@ The npm package includes two ready-to-use template files:
 - `templates/declaration.mustache` — the default enum and type-alias page.
 - `templates/classes.mustache` — the generated class index page.
 - `templates/index.mustache` — the reusable interface and enum index layout.
+- `templates/agent-symbol.mustache` — the retrieval-sized structured symbol page used by AI agents.
 - `templates/default.mustache` — the complete template used when `template` is omitted.
 - `templates/compact.mustache` — a shorter symbol-oriented layout.
 
@@ -87,6 +88,17 @@ Non-Python class pages are flattened into the output directory—for example, a 
 
 Python classes, functions, and methods whose names begin with `_` are treated as private and omitted, including descendants of private classes.
 
+### Agent-readable output
+
+Directory and registry generation also creates an agent-oriented documentation layer by default:
+
+- `llms.txt` provides a concise package summary, index links, and symbol links.
+- `llms-full.txt` concatenates every agent symbol page with explicit file-boundary markers.
+- `manifest.json` provides a versioned machine-readable symbol graph.
+- `symbols/<kind>/` contains one retrieval-sized Markdown file per top-level symbol, including loose functions.
+
+Agent symbol pages record qualified name, kind, language, module, source, visibility, exact signature, structured parameters, return type, and members. Pass `agentDocs: false` programmatically or `--no-agent-docs` on the CLI to omit these artifacts.
+
 `node_modules`, build output, coverage, version-control folders, and hidden directories are ignored. The default output directory is `<input>/docs`. Use `--language` to restrict a folder to one language. `generateDirectory()` returns `outputs` and `pages` arrays alongside the aggregate discovery `model`.
 
 ### Published packages
@@ -94,6 +106,8 @@ Python classes, functions, and methods whose names begin with `_` are treated as
 Prefix a package specification with `npm:` or `pypi:`. npm inputs support standard package names, versions, and tags such as `npm:lodash`, `npm:lodash@4.17.21`, or `npm:lodash@latest`. PyPI inputs accept a project name with an optional exact version, such as `pypi:requests` or `pypi:requests==2.32.5`.
 
 Remote packages are downloaded to temporary storage and removed after generation. PyPI artifacts are SHA-256 verified and limited to 100 MiB by default; `maxDownloadBytes` can customize that programmatically. Source distributions are preferred, with wheels used when no source distribution is published. When `-o` is omitted, remote output defaults to `docs/<package-spec>` in the current directory.
+
+Extracted registry sources are cached for 24 hours in `.docs-generator-cache/` under the current working directory. Use `--refresh-cache` to replace an entry, `--no-cache` to bypass the extracted-source cache, or `--cache-dir <path>` to choose another location. Programmatic options include `cacheDirectory`, `cacheTtlMs`, `cache`, and `refreshCache`; results report `cacheHit` and the entry’s `cacheDirectory`.
 
 For PyPI projects, standard `<project>/<package>/` and `<project>/src/<package>/` layouts are detected automatically. The import-package directory becomes the source root, preventing duplicated output paths such as `tkinterplus/tkinterplus/` while retaining its submodules.
 

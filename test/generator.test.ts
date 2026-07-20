@@ -3,9 +3,17 @@ import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { classesTemplate, classTemplate, declarationTemplate, defaultTemplate, functionsTemplate, generate, generateDirectory, generateRegistryPackage, extractDocumentation, getLanguage, indexTemplate, prettifyMarkdownTables } from "../dist";
+import {
+  agentSymbolTemplate, classesTemplate, classTemplate, declarationTemplate, defaultTemplate, functionsTemplate,
+  generate, generateDirectory, generateRegistryPackage, getRegistryCacheDirectory,
+  extractDocumentation, getLanguage, indexTemplate, prettifyMarkdownTables
+} from "../dist/index.js";
 
 describe("documentation generator", () => {
+  test("uses a cache directory in the current working directory", () => {
+    expect(getRegistryCacheDirectory()).toBe(path.resolve(".docs-generator-cache"));
+  });
+
   test("prettifies Markdown table columns", () => {
     const markdown = prettifyMarkdownTables(`| Name | Type | Description |
 | ---- | ---- | --- |
@@ -50,13 +58,13 @@ export async function add(a, b) { return a + b; }`;
 
   test("extracts Python docstrings and classifies nested functions as methods", () => {
     const source = `class Greeter:
-    \"\"\"A greeter.\"\"\"
+    """A greeter."""
     def greet(self, name: str):
-        \"\"\"Say hello.\"\"\"
+        """Say hello."""
         return name
 
 def add(a: int, b: int):
-    \"\"\"Adds numbers.\"\"\"
+    """Adds numbers."""
     return a + b
 
 def concise():
@@ -91,7 +99,7 @@ export declare function lookup(name: string): Client;
   });
 
   test("extracts symbols from source files larger than Tree-sitter's direct input limit", () => {
-    const source = `${"# padding\n".repeat(4_000)}\ndef documented(value):\n    \"\"\"A function in a large module.\"\"\"\n    return value\n`;
+    const source = `${"# padding\n".repeat(4_000)}\ndef documented(value):\n    """A function in a large module."""\n    return value\n`;
 
     const model = extractDocumentation(source, getLanguage("python"));
 
@@ -145,6 +153,12 @@ export declare function lookup(name: string): Client;
     expect(packagedTemplate).toBe(indexTemplate);
   });
 
+  test("ships an agent-symbol template matching the programmatic default", async () => {
+    const packagedTemplate = await readFile("templates/agent-symbol.mustache", "utf8");
+
+    expect(packagedTemplate).toBe(agentSymbolTemplate);
+  });
+
   test("generates one page per class and loose function from a package directory", async () => {
     const temporaryDirectory = await mkdtemp(path.join(tmpdir(), "docs-generator-"));
     const output = path.join(temporaryDirectory, "docs");
@@ -180,6 +194,11 @@ export declare function lookup(name: string): Client;
       const classesPage = await readFile(path.join(output, "classes.md"), "utf8");
       const interfacesPage = await readFile(path.join(output, "interfaces.md"), "utf8");
       const enumsPage = await readFile(path.join(output, "enums.md"), "utf8");
+      const llms = await readFile(path.join(output, "llms.txt"), "utf8");
+      const llmsFull = await readFile(path.join(output, "llms-full.txt"), "utf8");
+      const manifest = JSON.parse(await readFile(path.join(output, "manifest.json"), "utf8"));
+      const agentClass = await readFile(path.join(output, "symbols/classes/src.greeter.Greeter.md"), "utf8");
+      const agentFunction = await readFile(path.join(output, "symbols/functions/src.greeter.get_bedrock_link.md"), "utf8");
       expect(classPage).toContain('title: "Greeter | example-package Documentation"');
       expect(classPage).toContain("# Greeter Class");
       expect(classPage).toContain('description: "Example multi-language package"');
@@ -215,6 +234,14 @@ export declare function lookup(name: string): Client;
       expect(classesPage).toContain("- [Greeter](src/Greeter.md)\n- [Calculator](Calculator.md)");
       expect(interfacesPage).toContain("- [Service](Service.md)");
       expect(enumsPage).toContain("- [Status](Status.md)");
+      expect(llms).toContain("[src.greeter.Greeter](symbols/classes/src.greeter.Greeter.md)");
+      expect(llmsFull).toContain("<!-- BEGIN FILE: symbols/classes/src.greeter.Greeter.md -->");
+      expect(manifest.schemaVersion).toBe(1);
+      expect(manifest.symbols.find((symbol: { qualifiedName: string }) => symbol.qualifiedName === "src.greeter.Greeter")).toBeTruthy();
+      expect(agentClass).toContain('qualifiedName: "src.greeter.Greeter"');
+      expect(agentClass).toContain("## Members");
+      expect(agentFunction).toContain("## Parameters");
+      expect(result.agentOutputs).toContain(path.join(output, "manifest.json"));
     } finally {
       await rm(temporaryDirectory, { recursive: true, force: true });
     }

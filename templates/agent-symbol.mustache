@@ -1,0 +1,58 @@
+---
+name: {{{nameYaml}}}
+qualifiedName: {{{qualifiedNameYaml}}}
+kind: {{{kindYaml}}}
+language: {{{languageYaml}}}
+module: {{{moduleYaml}}}
+source: {{{sourcePathYaml}}}
+visibility: "public"
+---
+
+# {{name}} {{symbolTypeLabel}}
+
+{{#description}}{{description}}{{/description}}{{^description}}UNDOCUMENTED{{/description}}
+
+## Signature
+
+```{{language}}
+{{{signature}}}
+```
+{{#parameterDetails.length}}
+
+## Parameters
+{{#parameterDetails}}
+
+- name: `{{name}}`
+  type: `{{type}}`
+  required: true
+  description: {{#description}}{{description}}{{/description}}{{^description}}UNDOCUMENTED{{/description}}
+{{/parameterDetails}}
+{{/parameterDetails.length}}
+{{#returns}}
+
+## Returns
+
+- type: `{{returns}}`
+{{/returns}}
+{{#members.length}}
+
+## Members
+{{#members}}
+
+### {{name}}
+
+```{{language}}
+{{{signature}}}
+```
+
+{{#description}}{{description}}{{/description}}{{^description}}UNDOCUMENTED{{/description}}
+{{#parameterDetails.length}}
+
+Parameters:
+{{#parameterDetails}}
+
+- `{{name}}` (`{{type}}`): {{#description}}{{description}}{{/description}}{{^description}}UNDOCUMENTED{{/description}}
+{{/parameterDetails}}
+{{/parameterDetails.length}}
+{{/members}}
+{{/members.length}}

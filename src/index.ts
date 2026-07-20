@@ -1,16 +1,18 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import Mustache from "mustache";
-import { extractDocumentation } from "./extract";
-import { getLanguage, registerLanguage, listLanguages, javascript, typescript, tsx, python } from "./languages";
-import { classesTemplate, classTemplate, declarationTemplate, defaultTemplate, functionsTemplate, indexTemplate } from "./template";
-import { prettifyMarkdownTables } from "./markdown";
-import type { DocumentationModel, GeneratedPage, GenerateDirectoryOptions, GenerateFileOptions, GenerateOptions, LanguageDefinition, SymbolKind } from "./types";
+import { extractDocumentation } from "./extract.js";
+import { getLanguage, registerLanguage, listLanguages, javascript, typescript, tsx, python } from "./languages.js";
+import { classesTemplate, classTemplate, declarationTemplate, defaultTemplate, functionsTemplate, indexTemplate } from "./template.js";
+import { prettifyMarkdownTables } from "./markdown.js";
+import { generateAgentDocumentation } from "./agent-docs.js";
+import type { AgentManifest, DocumentationModel, GeneratedPage, GenerateDirectoryOptions, GenerateFileOptions, GenerateOptions, LanguageDefinition, SymbolKind } from "./types.js";
 
-export * from "./types";
-export { classesTemplate, classTemplate, declarationTemplate, defaultTemplate, functionsTemplate, indexTemplate, extractDocumentation, getLanguage, registerLanguage, listLanguages, javascript, typescript, tsx, python };
-export { generateRegistryPackage } from "./registry";
-export { prettifyMarkdownTables } from "./markdown";
+export * from "./types.js";
+export { agentSymbolTemplate, classesTemplate, classTemplate, declarationTemplate, defaultTemplate, functionsTemplate, indexTemplate } from "./template.js";
+export { extractDocumentation, getLanguage, registerLanguage, listLanguages, javascript, typescript, tsx, python };
+export { generateRegistryPackage, getRegistryCacheDirectory } from "./registry.js";
+export { prettifyMarkdownTables } from "./markdown.js";
 
 export function generate(options: GenerateOptions): string {
   const language = typeof options.language === "string" ? getLanguage(options.language) : options.language;
@@ -55,7 +57,14 @@ async function packageMetadata(directory: string): Promise<{ title?: string; des
   }
 }
 
-export async function generateDirectory(options: GenerateDirectoryOptions): Promise<{ output: string; outputs: string[]; pages: GeneratedPage[]; model: DocumentationModel }> {
+export async function generateDirectory(options: GenerateDirectoryOptions): Promise<{
+  output: string;
+  outputs: string[];
+  pages: GeneratedPage[];
+  model: DocumentationModel;
+  agentOutputs: string[];
+  manifest?: AgentManifest;
+}> {
   const input = path.resolve(options.input);
   const selectedLanguages = options.languages?.map(item => typeof item === "string" ? getLanguage(item) : item) ?? listLanguages();
   const byExtension = new Map(selectedLanguages.flatMap(language => language.extensions.map(extension => [extension.toLowerCase(), language] as const)));
@@ -109,6 +118,8 @@ export async function generateDirectory(options: GenerateDirectoryOptions): Prom
   const output = path.resolve(options.output ?? path.join(input, "docs"));
   const pages: GeneratedPage[] = [];
   const usedPaths = new Set<string>();
+  // Control characters are invalid in filenames on supported platforms.
+  // eslint-disable-next-line no-control-regex
   const safeName = (name: string) => name.replace(/[<>:"/\\|?*\x00-\x1f]/g, "-").replace(/\s+/g, "-") || "anonymous";
 
   for (const module of modules) {
@@ -235,5 +246,8 @@ export async function generateDirectory(options: GenerateDirectoryOptions): Prom
     await fs.writeFile(pageOutput, render(pageModel, { ...options, template: options.template ?? functionsTemplate }), "utf8");
     pages.push({ output: pageOutput, symbols: functions, model: pageModel });
   }
-  return { output, outputs: pages.map(page => page.output), pages, model };
+  const agent = options.agentDocs === false
+    ? { outputs: [], manifest: undefined }
+    : await generateAgentDocumentation(output, model);
+  return { output, outputs: pages.map(page => page.output), pages, model, agentOutputs: agent.outputs, manifest: agent.manifest };
 }

@@ -1,5 +1,5 @@
 import Parser from "tree-sitter";
-import type { DocParameter, DocSymbol, DocumentationModel, LanguageDefinition, SymbolKind } from "./types";
+import type { DocParameter, DocSymbol, DocumentationModel, LanguageDefinition, SymbolKind } from "./types.js";
 
 const cleanComment = (text: string): string => text
   .replace(/^\s*\/\*\*?/, "").replace(/\*\/\s*$/, "")
@@ -176,15 +176,24 @@ export function extractDocumentation(source: string, language: LanguageDefinitio
         kind,
         name: symbolName,
         anchor: symbolName.toLowerCase(),
+        qualifiedName: symbolName,
+        module: metadata.sourcePath?.replace(/\.[^.]+$/, "").replace(/[\\/]/g, ".") ?? "",
+        visibility: "public",
         signature: signature(node, source, bodyFields),
         description: parsedDocumentation.description,
         parameters: paramsNode?.namedChildren.map(child => source.slice(child.startIndex, child.endIndex)) ?? [],
         parameterDetails: parsedDocumentation.parameters,
+        returns: field(node, ["return_type", "returns"]) ? source.slice(
+          field(node, ["return_type", "returns"])!.startIndex,
+          field(node, ["return_type", "returns"])!.endIndex
+        ).replace(/^(?:->|:)\s*/, "") : undefined,
         async: /\basync\b/.test(source.slice(node.startIndex, nameNode?.startIndex ?? node.startIndex)),
         location: { startLine: node.startPosition.row + 1, endLine: node.endPosition.row + 1 },
         language: language.name,
         sourcePath: metadata.sourcePath,
-        members: []
+        members: [],
+        extends: [],
+        implements: []
       };
       if (hidden || privatePythonSymbol) symbol = null;
       else if (language.transformSymbol && symbol) symbol = language.transformSymbol(symbol, node, source);
@@ -210,6 +219,13 @@ export function extractDocumentation(source: string, language: LanguageDefinitio
       currentSymbol.parameterDetails = documentedParameters(currentDocumentation, currentSymbol.parameterDetails).parameters;
       currentSymbol.parameters = currentSymbol.parameterDetails.map(parameter => parameter.signature);
       currentSymbol.members = currentSymbol.members.filter(member => !["constructor", "__init__"].includes(member.name));
+    }
+    if (currentSymbol) {
+      currentSymbol.qualifiedName = currentSymbol.module ? `${currentSymbol.module}.${currentSymbol.name}` : currentSymbol.name;
+      for (const member of currentSymbol.members) {
+        member.module = currentSymbol.module;
+        member.qualifiedName = `${currentSymbol.qualifiedName}.${member.name}`;
+      }
     }
   }
   visit(tree.rootNode);

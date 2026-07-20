@@ -1,18 +1,18 @@
 #!/usr/bin/env node
 import { promises as fs } from "node:fs";
+import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { generateDirectory, generateFile, generateRegistryPackage, getLanguage, listLanguages } from "./index";
-
-const { version } = require("../package.json") as { version: string };
+import { generateDirectory, generateFile, generateRegistryPackage, getLanguage, listLanguages } from "./index.js";
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   if (args.includes("-V") || args.includes("--version")) {
-    console.log(version);
+    const manifest = JSON.parse(await fs.readFile(fileURLToPath(new URL("../package.json", import.meta.url)), "utf8")) as { version: string };
+    console.log(manifest.version);
     return;
   }
   if (args.includes("--help") || !args.length) {
-    console.log("Usage: docs-generator <input|npm:spec|pypi:spec> [-o output] [-l language] [-t template.mustache] [--title title] [-V|--version]");
+    console.log("Usage: docs-generator <input|npm:spec|pypi:spec> [-o output] [-l language] [-t template.mustache] [--title title] [--no-agent-docs] [--cache-dir path] [--no-cache|--refresh-cache] [-V|--version]");
     console.log(`Languages: ${listLanguages().map(item => item.name).join(", ")}`);
     return;
   }
@@ -29,7 +29,11 @@ async function main(): Promise<void> {
       output: outputArg ? path.resolve(outputArg) : undefined,
       template: templatePath ? await fs.readFile(path.resolve(templatePath), "utf8") : undefined,
       title: value("", "--title"),
-      languages: languageName ? [getLanguage(languageName)] : undefined
+      languages: languageName ? [getLanguage(languageName)] : undefined,
+      cacheDirectory: value("", "--cache-dir"),
+      cache: !args.includes("--no-cache"),
+      refreshCache: args.includes("--refresh-cache"),
+      agentDocs: !args.includes("--no-agent-docs")
     });
     console.log(result.output);
     return;
@@ -38,7 +42,8 @@ async function main(): Promise<void> {
   const common = {
     input, output: outputArg ? path.resolve(outputArg) : undefined,
     template: templatePath ? await fs.readFile(path.resolve(templatePath), "utf8") : undefined,
-    title: value("", "--title")
+    title: value("", "--title"),
+    agentDocs: !args.includes("--no-agent-docs")
   };
   const stats = await fs.stat(input);
   const result = stats.isDirectory()
