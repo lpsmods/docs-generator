@@ -50,16 +50,16 @@ Templates receive `title`, `language`, `sourcePath`, `description`, `hasSymbols`
 
 Markdown tables produced by built-in or custom templates are automatically padded and aligned after Mustache rendering. The formatter is also exported as `prettifyMarkdownTables(markdown)` for standalone use.
 
-The npm package includes two ready-to-use template files:
+The npm package includes multiple ready-to-use template files:
 
-- `templates/class.mustache` — the default YAML-front-matter class page with parameters and methods.
-- `templates/functions.mustache` — the default combined loose-functions page with typed parameter tables.
-- `templates/declaration.mustache` — the default enum and type-alias page.
-- `templates/classes.mustache` — the generated class index page.
-- `templates/index.mustache` — the reusable interface and enum index layout.
-- `templates/agent-symbol.mustache` — the retrieval-sized structured symbol page used by AI agents.
-- `templates/default.mustache` — the complete template used when `template` is omitted.
-- `templates/compact.mustache` — a shorter symbol-oriented layout.
+- `templates/class.mustache`: the default YAML-front-matter class page with parameters and methods.
+- `templates/functions.mustache`: the default combined loose-functions page with typed parameter tables.
+- `templates/declaration.mustache`: the default enum and type-alias page.
+- `templates/classes.mustache`: the generated class index page.
+- `templates/index.mustache`: the reusable interface and enum index layout.
+- `templates/agent-symbol.mustache`: the retrieval-sized structured symbol page used by AI agents.
+- `templates/default.mustache`: the complete template used when `template` is omitted.
+- `templates/compact.mustache`: a shorter symbol-oriented layout.
 
 Pass a packaged template to the CLI after resolving its installed location:
 
