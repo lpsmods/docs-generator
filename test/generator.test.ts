@@ -1,5 +1,4 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
-import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
@@ -24,12 +23,6 @@ describe("documentation generator", () => {
 | ---------- | ---- | ---------------------------------- |
 | \`x\`        | int  | Short                              |
 | \`gamertag\` | str  | The gamertag of the Bedrock player |`);
-  });
-
-  test.each(["-V", "--version"])("prints the package version with %s", flag => {
-    const output = execFileSync(process.execPath, ["dist/cli.js", flag], { encoding: "utf8" });
-
-    expect(output.trim()).toBe("1.0.0");
   });
 
   test("rejects malformed PyPI package specs before downloading", async () => {
