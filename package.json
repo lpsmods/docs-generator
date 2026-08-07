@@ -13,7 +13,7 @@
   "funding": "https://github.com/sponsors/legopitstop",
   "repository": {
     "type": "git",
-    "url": "https://github.com/lpsmods/docs-generator"
+    "url": "git+https://github.com/lpsmods/docs-generator.git"
   },
   "bugs": {
     "url": "https://github.com/lpsmods/docs-generator/issues"
