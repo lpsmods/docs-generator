@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
@@ -235,6 +235,54 @@ export declare function lookup(name: string): Client;
       expect(agentClass).toContain("## Members");
       expect(agentFunction).toContain("## Parameters");
       expect(result.agentOutputs).toContain(path.join(output, "manifest.json"));
+    } finally {
+      await rm(temporaryDirectory, { recursive: true, force: true });
+    }
+  });
+
+  test("optionally generates a VitePress sidebar JSON file", async () => {
+    const temporaryDirectory = await mkdtemp(path.join(tmpdir(), "docs-generator-sidebar-"));
+    const output = path.join(temporaryDirectory, "docs");
+
+    try {
+      await mkdir(output, { recursive: true });
+      const existingItem = { text: "Guide", link: "/guide" };
+      const oldApiReference = {
+        text: "API Refrences",
+        items: [{ text: "Old page", link: "/old-page" }]
+      };
+      await writeFile(
+        path.join(output, "sidebar.json"),
+        `${JSON.stringify([existingItem, oldApiReference])}\n`,
+        "utf8"
+      );
+      const result = await generateDirectory({
+        input: "test/fixtures/example-package",
+        output,
+        agentDocs: false,
+        vitepressSidebar: true
+      });
+      const sidebar = JSON.parse(await readFile(path.join(output, "sidebar.json"), "utf8"));
+
+      expect(result.sidebarOutput).toBe(path.join(output, "sidebar.json"));
+      expect(sidebar).toHaveLength(2);
+      expect(sidebar[0]).toEqual(existingItem);
+      expect(sidebar[1].text).toBe("API Reference");
+      expect(sidebar[1].items.map((item: { text: string }) => item.text)).toEqual([
+        "Classes", "Interfaces", "Enums", "Type Aliases", "Functions"
+      ]);
+      expect(sidebar[1].items.find((item: { text: string }) => item.text === "Classes").items).toEqual([
+        { text: "Overview", link: "/classes" },
+        { text: "Greeter", link: "/src/Greeter" },
+        { text: "Calculator", link: "/Calculator" }
+      ]);
+      expect(sidebar[1].items.find((item: { text: string }) => item.text === "Enums").items).toEqual([
+        { text: "Overview", link: "/enums" },
+        { text: "Status", link: "/Status" }
+      ]);
+      expect(sidebar[1].items.find((item: { text: string }) => item.text === "Functions").items).toEqual([
+        { text: "Overview", link: "/functions" }
+      ]);
     } finally {
       await rm(temporaryDirectory, { recursive: true, force: true });
     }

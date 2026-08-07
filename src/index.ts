@@ -64,6 +64,7 @@ export async function generateDirectory(options: GenerateDirectoryOptions): Prom
   model: DocumentationModel;
   agentOutputs: string[];
   manifest?: AgentManifest;
+  sidebarOutput?: string;
 }> {
   const input = path.resolve(options.input);
   const selectedLanguages = options.languages?.map(item => typeof item === "string" ? getLanguage(item) : item) ?? listLanguages();
@@ -249,5 +250,68 @@ export async function generateDirectory(options: GenerateDirectoryOptions): Prom
   const agent = options.agentDocs === false
     ? { outputs: [], manifest: undefined }
     : await generateAgentDocumentation(output, model);
-  return { output, outputs: pages.map(page => page.output), pages, model, agentOutputs: agent.outputs, manifest: agent.manifest };
+  let sidebarOutput: string | undefined;
+  if (options.vitepressSidebar) {
+    sidebarOutput = path.join(output, "sidebar.json");
+    let sidebar: unknown[] = [];
+    try {
+      const existingSidebar = JSON.parse(await fs.readFile(sidebarOutput, "utf8")) as unknown;
+      if (!Array.isArray(existingSidebar)) {
+        throw new Error("the existing file must contain a JSON array");
+      }
+      sidebar = existingSidebar;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== "ENOENT") {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Could not update ${sidebarOutput}: ${message}`, { cause: error });
+      }
+    }
+    const sidebarItem = (page: GeneratedPage, text = page.model.title) => ({
+      text,
+      link: `/${path.relative(output, page.output).replace(/\\/g, "/").replace(/\.md$/, "")
+        .split("/").map(encodeURIComponent).join("/")}`
+    });
+    const category = (
+      text: string,
+      kind: SymbolKind,
+      overviewFilename?: string
+    ) => {
+      const items = pages
+        .filter(page => page.symbol?.kind === kind)
+        .map(page => sidebarItem(page));
+      if (overviewFilename) {
+        const overview = pages.find(page => path.basename(page.output) === overviewFilename);
+        if (overview) items.unshift(sidebarItem(overview, "Overview"));
+      }
+      return items.length ? { text, items } : undefined;
+    };
+    const apiReferenceItems = [
+      category("Classes", "class", "classes.md"),
+      category("Interfaces", "interface", "interfaces.md"),
+      category("Enums", "enum", "enums.md"),
+      category("Type Aliases", "type"),
+      category("Functions", "function", "functions.md")
+    ].filter(item => item !== undefined);
+    const apiReference = {
+      text: "API Reference",
+      items: apiReferenceItems
+    };
+    const apiReferenceIndex = sidebar.findIndex(item => {
+      if (typeof item !== "object" || item === null || !("text" in item)) return false;
+      return item.text === "API Refrences" || item.text === "API Reference";
+    });
+    if (apiReferenceIndex === -1) sidebar.push(apiReference);
+    else sidebar[apiReferenceIndex] = apiReference;
+    await fs.writeFile(sidebarOutput, `${JSON.stringify(sidebar, null, 2)}\n`, "utf8");
+  }
+  return {
+    output,
+    outputs: pages.map(page => page.output),
+    pages,
+    model,
+    agentOutputs: agent.outputs,
+    manifest: agent.manifest,
+    sidebarOutput
+  };
 }

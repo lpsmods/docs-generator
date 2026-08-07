@@ -12,7 +12,7 @@ async function main(): Promise<void> {
     return;
   }
   if (args.includes("--help") || !args.length) {
-    console.log("Usage: docs-generator <input|npm:spec|pypi:spec> [-o output] [-l language] [-t template.mustache] [--title title] [--no-agent-docs] [--cache-dir path] [--no-cache|--refresh-cache] [-V|--version]");
+    console.log("Usage: docs-generator <input|npm:spec|pypi:spec> [-o output] [-l language] [-t template.mustache] [--title title] [--vitepress-sidebar] [--no-agent-docs] [--cache-dir path] [--no-cache|--refresh-cache] [-V|--version]");
     console.log(`Languages: ${listLanguages().map(item => item.name).join(", ")}`);
     return;
   }
@@ -33,7 +33,8 @@ async function main(): Promise<void> {
       cacheDirectory: value("", "--cache-dir"),
       cache: !args.includes("--no-cache"),
       refreshCache: args.includes("--refresh-cache"),
-      agentDocs: !args.includes("--no-agent-docs")
+      agentDocs: !args.includes("--no-agent-docs"),
+      vitepressSidebar: args.includes("--vitepress-sidebar")
     });
     console.log(result.output);
     return;
@@ -43,7 +44,8 @@ async function main(): Promise<void> {
     input, output: outputArg ? path.resolve(outputArg) : undefined,
     template: templatePath ? await fs.readFile(path.resolve(templatePath), "utf8") : undefined,
     title: value("", "--title"),
-    agentDocs: !args.includes("--no-agent-docs")
+    agentDocs: !args.includes("--no-agent-docs"),
+    vitepressSidebar: args.includes("--vitepress-sidebar")
   };
   const stats = await fs.stat(input);
   const result = stats.isDirectory()

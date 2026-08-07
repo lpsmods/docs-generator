@@ -101,6 +101,14 @@ Agent symbol pages record qualified name, kind, language, module, source, visibi
 
 `node_modules`, build output, coverage, version-control folders, and hidden directories are ignored. The default output directory is `<input>/docs`. Use `--language` to restrict a folder to one language. `generateDirectory()` returns `outputs` and `pages` arrays alongside the aggregate discovery `model`.
 
+Pass `--vitepress-sidebar` to write a VitePress sidebar configuration to
+`sidebar.json` in the output directory. Programmatic callers can set
+`vitepressSidebar: true`; the returned `sidebarOutput` contains the generated
+file path. When `sidebar.json` already exists, its array items are preserved and
+the generated `API Reference` group replaces an existing `API Refrences` or
+`API Reference` group, or is appended when neither exists. The generated group
+contains subgroups for classes, interfaces, enums, type aliases, and functions.
+
 ### Published packages
 
 Prefix a package specification with `npm:` or `pypi:`. npm inputs support standard package names, versions, and tags such as `npm:lodash`, `npm:lodash@4.17.21`, or `npm:lodash@latest`. PyPI inputs accept a project name with an optional exact version, such as `pypi:requests` or `pypi:requests==2.32.5`.
