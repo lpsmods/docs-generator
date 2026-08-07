@@ -252,7 +252,9 @@ export async function generateDirectory(options: GenerateDirectoryOptions): Prom
     : await generateAgentDocumentation(output, model);
   let sidebarOutput: string | undefined;
   if (options.vitepressSidebar) {
-    sidebarOutput = path.join(output, "sidebar.json");
+    sidebarOutput = typeof options.vitepressSidebar === "string"
+      ? options.vitepressSidebar
+      : path.join(output, "sidebar.json");
     let sidebar: unknown[] = [];
     try {
       const existingSidebar = JSON.parse(await fs.readFile(sidebarOutput, "utf8")) as unknown;

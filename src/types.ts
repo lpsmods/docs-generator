@@ -104,7 +104,7 @@ export interface GenerateDirectoryOptions {
   /** Generate llms.txt, llms-full.txt, manifest.json, and per-symbol agent pages. Defaults to true. */
   agentDocs?: boolean;
   /** Generate a VitePress sidebar configuration at `<output>/sidebar.json`. */
-  vitepressSidebar?: boolean;
+  vitepressSidebar?: boolean | string;
 }
 
 export interface GeneratedPage {
