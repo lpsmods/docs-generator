@@ -34,7 +34,7 @@ async function main(): Promise<void> {
       cache: !args.includes("--no-cache"),
       refreshCache: args.includes("--refresh-cache"),
       agentDocs: !args.includes("--no-agent-docs"),
-      vitepressSidebar: args.includes("--vitepress-sidebar")
+      vitepress: args.includes("--vitepress-sidebar") ? { sidebar: "docs/sidebar.json" } : undefined
     });
     console.log(result.output);
     return;
@@ -45,7 +45,7 @@ async function main(): Promise<void> {
     template: templatePath ? await fs.readFile(path.resolve(templatePath), "utf8") : undefined,
     title: value("", "--title"),
     agentDocs: !args.includes("--no-agent-docs"),
-    vitepressSidebar: args.includes("--vitepress-sidebar")
+    vitepress: args.includes("--vitepress-sidebar") ? { sidebar: "docs/sidebar.json" } : undefined
   };
   const stats = await fs.stat(input);
   const result = stats.isDirectory()

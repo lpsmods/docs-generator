@@ -89,6 +89,19 @@ export interface GenerateFileOptions extends Omit<GenerateOptions, "source"> {
   output?: string;
 }
 
+export interface GenerateVitepressOptions {
+  /**
+   * The title for the VitePress sidebar configuration. Defaults to "API Reference".
+   */
+  title?: string;
+  /**
+   * The base path for links in the VitePress sidebar configuration.
+   */
+  base?: string;
+  /** Generate a VitePress sidebar configuration at `<output>/sidebar.json`. */
+  sidebar?: string|boolean;
+}
+
 export interface GenerateDirectoryOptions {
   input: string;
   /** Directory where per-symbol Markdown files are written. Defaults to `<input>/docs`. */
@@ -103,8 +116,10 @@ export interface GenerateDirectoryOptions {
   ignore?: string[];
   /** Generate llms.txt, llms-full.txt, manifest.json, and per-symbol agent pages. Defaults to true. */
   agentDocs?: boolean;
-  /** Generate a VitePress sidebar configuration at `<output>/sidebar.json`. */
-  vitepressSidebar?: boolean | string;
+  /**
+   * VitePress generation options.
+   */
+  vitepress?: GenerateVitepressOptions;
 }
 
 export interface GeneratedPage {

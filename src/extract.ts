@@ -1,5 +1,6 @@
 import Parser from "tree-sitter";
 import type { DocParameter, DocSymbol, DocumentationModel, LanguageDefinition, SymbolKind } from "./types.js";
+import { convertToAnchor, escapeMarkdown as escapeMD } from "./utils.js";
 
 const cleanComment = (text: string): string => text
   .replace(/^\s*\/\*\*?/, "").replace(/\*\/\s*$/, "")
@@ -52,7 +53,7 @@ function parameterDetail(node: Parser.SyntaxNode, source: string): DocParameter 
   const typeNode = field(node, ["type"]);
   return {
     name: source.slice(nameNode.startIndex, nameNode.endIndex).replace(/^\*+/, ""),
-    type: typeNode ? source.slice(typeNode.startIndex, typeNode.endIndex).replace(/^:\s*/, "") : "",
+    type: escapeMD(typeNode ? source.slice(typeNode.startIndex, typeNode.endIndex).replace(/^:\s*/, "") : ""),
     description: "",
     signature: source.slice(node.startIndex, node.endIndex)
   };
@@ -70,7 +71,7 @@ function declaredClassParameters(node: Parser.SyntaxNode, source: string): DocPa
     if (!nameNode || !typeNode) continue;
     parameters.push({
       name: source.slice(nameNode.startIndex, nameNode.endIndex),
-      type: source.slice(typeNode.startIndex, typeNode.endIndex).replace(/^:\s*/, ""),
+      type: escapeMD(source.slice(typeNode.startIndex, typeNode.endIndex).replace(/^:\s*/, "")),
       description: "",
       signature: source.slice(declaration.startIndex, declaration.endIndex)
     });
@@ -88,19 +89,19 @@ function documentedParameters(documentation: string, parameters: DocParameter[])
     let match = /^\s*@param\s+(?:\{([^}]+)\}\s+)?(\S+)\s*-?\s*(.*)$/.exec(line);
     if (match) {
       sectionStart = Math.min(sectionStart, index);
-      details.set(match[2].replace(/^\[|\]$/g, "").split("=")[0], { type: match[1], description: match[3].trim() });
+      details.set(match[2].replace(/^\[|\]$/g, "").split("=")[0], { type: escapeMD(match[1]), description: escapeMD(match[3].trim()) });
       continue;
     }
     match = /^\s*:param\s+(\w+)\s*:\s*(.*)$/.exec(line);
     if (match) {
       sectionStart = Math.min(sectionStart, index);
-      details.set(match[1], { ...details.get(match[1]), description: match[2].trim() });
+      details.set(match[1], { ...details.get(match[1]), description: escapeMD(match[2].trim()) });
       continue;
     }
     match = /^\s*:type\s+(\w+)\s*:\s*(.*)$/.exec(line);
     if (match) {
       sectionStart = Math.min(sectionStart, index);
-      details.set(match[1], { type: match[2].trim(), description: details.get(match[1])?.description ?? "" });
+      details.set(match[1], { type: escapeMD(match[2].trim()), description: escapeMD(details.get(match[1])?.description ?? "") });
       continue;
     }
     if (/^\s*(?:Args|Arguments|Parameters)\s*:\s*$/.test(line)) {
@@ -111,7 +112,7 @@ function documentedParameters(documentation: string, parameters: DocParameter[])
           if (lines[index].trim() && !/^\s+/.test(lines[index])) { index--; break; }
           continue;
         }
-        details.set(parameter[1].replace(/^\*+/, ""), { type: parameter[2], description: parameter[3].trim() });
+        details.set(parameter[1].replace(/^\*+/, ""), { type: escapeMD(parameter[2].trim()), description: escapeMD(parameter[3].trim()) });
       }
       continue;
     }
@@ -123,19 +124,19 @@ function documentedParameters(documentation: string, parameters: DocParameter[])
         if (!parameter) { if (lines[index].trim()) { index--; break; } index++; continue; }
         const descriptions: string[] = [];
         while (++index < lines.length && /^\s+\S/.test(lines[index])) descriptions.push(lines[index].trim());
-        details.set(parameter[1], { type: parameter[2].trim(), description: descriptions.join(" ") });
+        details.set(parameter[1], { type: escapeMD(parameter[2].trim()), description: escapeMD(descriptions.join(" ")) });
       }
     }
   }
 
   return {
-    description: lines.slice(0, sectionStart).join("\n").trim(),
+    description: escapeMD(lines.slice(0, sectionStart).join("\n").trim()),
     parameters: parameters.map(parameter => {
       const documented = details.get(parameter.name);
       return documented ? {
         ...parameter,
-        type: parameter.type || documented.type || "",
-        description: documented.description
+        type: escapeMD(parameter.type || documented.type || ""),
+        description: escapeMD(documented.description)
       } : parameter;
     })
   };
@@ -175,12 +176,12 @@ export function extractDocumentation(source: string, language: LanguageDefinitio
       let symbol: DocSymbol | null = {
         kind,
         name: symbolName,
-        anchor: symbolName.toLowerCase(),
         qualifiedName: symbolName,
+        anchor: convertToAnchor(symbolName),
         module: metadata.sourcePath?.replace(/\.[^.]+$/, "").replace(/[\\/]/g, ".") ?? "",
         visibility: "public",
         signature: signature(node, source, bodyFields),
-        description: parsedDocumentation.description,
+        description: escapeMD(parsedDocumentation.description),
         parameters: paramsNode?.namedChildren.map(child => source.slice(child.startIndex, child.endIndex)) ?? [],
         parameterDetails: parsedDocumentation.parameters,
         returns: field(node, ["return_type", "returns"]) ? source.slice(
@@ -235,7 +236,7 @@ export function extractDocumentation(source: string, language: LanguageDefinitio
     title: metadata.title ?? metadata.sourcePath ?? "API Documentation",
     language: language.name,
     sourcePath: metadata.sourcePath,
-    description: metadata.description,
+    description: escapeMD(metadata.description),
     symbols,
     classes: byKind("class"), functions: byKind("function"), interfaces: byKind("interface"),
     types: byKind("type"), enums: byKind("enum"), hasSymbols: symbols.length > 0, modules: []

@@ -73,7 +73,7 @@ description: {{{packageDescriptionYaml}}}
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 {{#parameterDetails}}
-| \`{{name}}\` | {{type}} | {{description}} |
+| \`{{name}}\` | \`{{type}}\` | {{description}} |
 {{/parameterDetails}}
 {{/parameterDetails.length}}
 {{#members.length}}
@@ -94,7 +94,7 @@ description: {{{packageDescriptionYaml}}}
 | Name | Type | Description |
 | ---- | ---- | ----------- |
 {{#parameterDetails}}
-| \`{{name}}\` | {{type}} | {{description}} |
+| \`{{name}}\` | \`{{type}}\` | {{description}} |
 {{/parameterDetails}}
 {{/parameterDetails.length}}
 {{/members}}

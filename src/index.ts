@@ -251,9 +251,9 @@ export async function generateDirectory(options: GenerateDirectoryOptions): Prom
     ? { outputs: [], manifest: undefined }
     : await generateAgentDocumentation(output, model);
   let sidebarOutput: string | undefined;
-  if (options.vitepressSidebar) {
-    sidebarOutput = typeof options.vitepressSidebar === "string"
-      ? options.vitepressSidebar
+  if (options.vitepress?.sidebar) {
+    sidebarOutput = typeof options.vitepress.sidebar === "string"
+      ? options.vitepress.sidebar
       : path.join(output, "sidebar.json");
     let sidebar: unknown[] = [];
     try {
@@ -271,7 +271,7 @@ export async function generateDirectory(options: GenerateDirectoryOptions): Prom
     }
     const sidebarItem = (page: GeneratedPage, text = page.model.title) => ({
       text,
-      link: `/${path.relative(output, page.output).replace(/\\/g, "/").replace(/\.md$/, "")
+      link: `${path.relative(output, page.output).replace(/\\/g, "/").replace(/\.md$/, "")
         .split("/").map(encodeURIComponent).join("/")}`
     });
     const category = (
@@ -286,7 +286,7 @@ export async function generateDirectory(options: GenerateDirectoryOptions): Prom
         const overview = pages.find(page => path.basename(page.output) === overviewFilename);
         if (overview) items.unshift(sidebarItem(overview, "Overview"));
       }
-      return items.length ? { text, items } : undefined;
+      return items.length > 1 ? { text, items, collapsed: true } : undefined;
     };
     const apiReferenceItems = [
       category("Classes", "class", "classes.md"),
@@ -295,13 +295,22 @@ export async function generateDirectory(options: GenerateDirectoryOptions): Prom
       category("Type Aliases", "type"),
       category("Functions", "function", "functions.md")
     ].filter(item => item !== undefined);
-    const apiReference = {
-      text: "API Reference",
+
+    const apiReference: any = {
+      text: options.vitepress?.title ?? "API Reference",
+       collapsed: false,
       items: apiReferenceItems
     };
+
+    if (options.vitepress?.base) {
+      apiReference.base = options.vitepress.base;
+    } else {
+      const base = path.relative(path.dirname(sidebarOutput), output);
+      if (base) apiReference.base = `/${base}/`;
+    }
     const apiReferenceIndex = sidebar.findIndex(item => {
       if (typeof item !== "object" || item === null || !("text" in item)) return false;
-      return item.text === "API Refrences" || item.text === "API Reference";
+      return options.vitepress?.title ? item.text === options.vitepress.title : item.text === "API Reference";
     });
     if (apiReferenceIndex === -1) sidebar.push(apiReference);
     else sidebar[apiReferenceIndex] = apiReference;

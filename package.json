@@ -1,6 +1,6 @@
 {
   "name": "@lpsmods/docs-generator",
-  "version": "0.0.1-alpha.2",
+  "version": "0.0.1-alpha.3",
   "description": "Generate Markdown API documentation from source code with Tree-sitter and Mustache",
   "keywords": [
     "documentation",
@@ -36,7 +36,7 @@
     "test": "npm run build && vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "npm test",
-    "gen:docs": "docs-generator src -o docs --vitepress-sidebar"
+    "gen:docs": "npm run build && node ./generate.js"
   },
   "dependencies": {
     "extract-zip": "^2.0.1",
