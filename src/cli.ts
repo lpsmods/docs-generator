@@ -2,21 +2,42 @@
 import { promises as fs } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { generateDirectory, generateFile, generateRegistryPackage, getLanguage, listLanguages } from "./index.js";
+import {
+  generateDirectory,
+  generateFile,
+  generateOpenApi,
+  generateRegistryPackage,
+  getLanguage,
+  listLanguages,
+} from "./index.js";
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   if (args.includes("-V") || args.includes("--version")) {
-    const manifest = JSON.parse(await fs.readFile(fileURLToPath(new URL("../package.json", import.meta.url)), "utf8")) as { version: string };
+    const manifest = JSON.parse(
+      await fs.readFile(
+        fileURLToPath(new URL("../package.json", import.meta.url)),
+        "utf8",
+      ),
+    ) as { version: string };
     console.log(manifest.version);
     return;
   }
   if (args.includes("--help") || !args.length) {
-    console.log("Usage: docs-generator <input|npm:spec|pypi:spec> [-o output] [-l language] [-t template.mustache] [--title title] [--vitepress-sidebar] [--no-agent-docs] [--cache-dir path] [--no-cache|--refresh-cache] [-V|--version]");
-    console.log(`Languages: ${listLanguages().map(item => item.name).join(", ")}`);
+    console.log(
+      "Usage: docs-generator <input|url|npm:spec|pypi:spec> [-o output] [-l language] [-t template.mustache] [--title title] [--vitepress-sidebar] [--no-agent-docs] [--cache-dir path] [--no-cache|--refresh-cache] [-V|--version]",
+    );
+    console.log(
+      `Languages: ${listLanguages()
+        .map((item) => item.name)
+        .join(", ")}`,
+    );
     return;
   }
-  const value = (short: string, long: string) => { const i = args.findIndex(arg => arg === short || arg === long); return i >= 0 ? args[i + 1] : undefined; };
+  const value = (short: string, long: string) => {
+    const i = args.findIndex((arg) => arg === short || arg === long);
+    return i >= 0 ? args[i + 1] : undefined;
+  };
   const inputArg = args[0];
   const outputArg = value("-o", "--output");
   const templatePath = value("-t", "--template");
@@ -27,31 +48,61 @@ async function main(): Promise<void> {
       registry: registryMatch[1].toLowerCase() as "npm" | "pypi",
       package: registryMatch[2],
       output: outputArg ? path.resolve(outputArg) : undefined,
-      template: templatePath ? await fs.readFile(path.resolve(templatePath), "utf8") : undefined,
+      template: templatePath
+        ? await fs.readFile(path.resolve(templatePath), "utf8")
+        : undefined,
       title: value("", "--title"),
       languages: languageName ? [getLanguage(languageName)] : undefined,
       cacheDirectory: value("", "--cache-dir"),
       cache: !args.includes("--no-cache"),
       refreshCache: args.includes("--refresh-cache"),
       agentDocs: !args.includes("--no-agent-docs"),
-      vitepress: args.includes("--vitepress-sidebar") ? { sidebar: "docs/sidebar.json" } : undefined
+      vitepress: args.includes("--vitepress-sidebar")
+        ? { sidebar: "docs/sidebar.json" }
+        : undefined,
+    });
+    console.log(result.output);
+    return;
+  }
+  if (/^https?:\/\//i.test(inputArg)) {
+    const result = await generateOpenApi({
+      input: inputArg,
+      output: outputArg ? path.resolve(outputArg) : undefined,
+      title: value("", "--title"),
+      vitepress: args.includes("--vitepress-sidebar")
+        ? { sidebar: "docs/sidebar.json" }
+        : undefined,
     });
     console.log(result.output);
     return;
   }
   const input = path.resolve(inputArg);
   const common = {
-    input, output: outputArg ? path.resolve(outputArg) : undefined,
-    template: templatePath ? await fs.readFile(path.resolve(templatePath), "utf8") : undefined,
+    input,
+    output: outputArg ? path.resolve(outputArg) : undefined,
+    template: templatePath
+      ? await fs.readFile(path.resolve(templatePath), "utf8")
+      : undefined,
     title: value("", "--title"),
     agentDocs: !args.includes("--no-agent-docs"),
-    vitepress: args.includes("--vitepress-sidebar") ? { sidebar: "docs/sidebar.json" } : undefined
+    vitepress: args.includes("--vitepress-sidebar")
+      ? { sidebar: "docs/sidebar.json" }
+      : undefined,
   };
   const stats = await fs.stat(input);
   const result = stats.isDirectory()
-    ? await generateDirectory({ ...common, languages: languageName ? [getLanguage(languageName)] : undefined })
-    : await generateFile({ ...common, language: getLanguage(languageName ?? path.extname(input)) });
+    ? await generateDirectory({
+        ...common,
+        languages: languageName ? [getLanguage(languageName)] : undefined,
+      })
+    : await generateFile({
+        ...common,
+        language: getLanguage(languageName ?? path.extname(input)),
+      });
   console.log(result.output);
 }
 
-main().catch(error => { console.error(error instanceof Error ? error.message : error); process.exitCode = 1; });
+main().catch((error) => {
+  console.error(error instanceof Error ? error.message : error);
+  process.exitCode = 1;
+});

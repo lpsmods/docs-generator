@@ -1,0 +1,23 @@
+---
+title: {{title}}
+description: {{description}}
+---
+
+# {{title}}
+{{#version}}
+
+Version: `{{version}}`
+{{/version}}
+{{#description}}
+
+{{description}}
+{{/description}}
+
+## Tags
+
+{{#tags}}- [{{name}}]({{{filename}}})
+{{/tags}}{{^tags}}No endpoints are defined.
+{{/tags}}{{#schemas}}
+
+{{{schemas}}}
+{{/schemas}}

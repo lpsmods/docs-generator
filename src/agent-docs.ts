@@ -2,7 +2,28 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import Mustache from "mustache";
 import { agentSymbolTemplate } from "./template.js";
-import type { AgentManifest, AgentSymbolRecord, DocSymbol, DocumentationModel, SymbolKind } from "./types.js";
+import type { AgentManifest, AgentSymbolRecord, DocumentationProvider, DocSymbol, DocumentationModel, ProviderGeneratedOutput, SymbolKind } from "./types.js";
+
+export const agentDocumentationProviderName = "agent-readable";
+
+/** Creates the provider responsible for llms.txt, llms-full.txt, manifest.json, and symbol pages. */
+export function agentDocumentationProvider(
+  onGenerated?: (result: { outputs: string[]; manifest: AgentManifest }) => void,
+): DocumentationProvider {
+  return {
+    name: agentDocumentationProviderName,
+    async generate({ output, model }): Promise<ProviderGeneratedOutput[]> {
+      const result = await generateAgentDocumentation(output, model);
+      onGenerated?.(result);
+      return Promise.all(
+        result.outputs.map(async (generatedPath) => ({
+          path: path.relative(output, generatedPath).replace(/\\/g, "/"),
+          contents: await fs.readFile(generatedPath, "utf8"),
+        })),
+      );
+    },
+  };
+}
 
 const typeLabels: Record<SymbolKind, string> = {
   class: "Class",

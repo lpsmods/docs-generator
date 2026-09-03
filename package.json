@@ -1,6 +1,6 @@
 {
   "name": "@lpsmods/docs-generator",
-  "version": "0.0.1-alpha.3",
+  "version": "0.0.1-alpha.4",
   "description": "Generate Markdown API documentation from source code with Tree-sitter and Mustache",
   "keywords": [
     "documentation",
