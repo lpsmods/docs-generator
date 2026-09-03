@@ -1,5 +1,9 @@
 # @lpsmods/docs-generator
 
+![Version](https://shields.io/npm/v/@lpsmods/docs-generator)
+[![Downloads](https://shields.io/npm/dm/@lpsmods/docs-generator)](https://www.npmjs.com/package/@lpsmods/docs-generator)
+[![Issues](https://img.shields.io/github/issues/lpsmods/docs-generator)](https://github.com/lpsmods/docs-generator/issues)
+
 Generate Markdown API documentation from JavaScript, TypeScript, TSX, and Python source files. The generator uses Tree-sitter for parsing and Mustache for templates.
 
 ## Install

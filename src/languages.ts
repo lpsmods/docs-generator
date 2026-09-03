@@ -48,12 +48,14 @@ export const python: LanguageDefinition = {
   extensions: [".py", ".pyi"],
   grammar: Python as unknown as LanguageDefinition["grammar"],
   nodeKinds: { class_definition: "class", function_definition: "function" },
+  /** Reclassifies functions nested directly in Python classes as methods. */
   transformSymbol(symbol, node) {
     if (symbol.kind === "function" && node.parent?.type === "block" && node.parent.parent?.type === "class_definition") {
       symbol.kind = "method";
     }
     return symbol;
   },
+  /** Extracts the leading Python string literal used as a declaration docstring. */
   getDocumentation(node, source) {
     const body = node.childForFieldName("body");
     const first = body?.namedChild(0);

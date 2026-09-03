@@ -1,5 +1,6 @@
 import type Parser from "tree-sitter";
 
+/** Identifies the supported kinds of source-code symbols. */
 export type SymbolKind =
   | "class"
   | "function"
@@ -8,11 +9,13 @@ export type SymbolKind =
   | "type"
   | "enum";
 
+/** Identifies the inclusive source-line range occupied by a documented symbol. */
 export interface SourceLocation {
   startLine: number;
   endLine: number;
 }
 
+/** Describes a parameter parsed from a callable declaration and its documentation. */
 export interface DocParameter {
   name: string;
   type: string;
@@ -20,6 +23,7 @@ export interface DocParameter {
   signature: string;
 }
 
+/** Represents a public source-code symbol in the normalized documentation model. */
 export interface DocSymbol {
   kind: SymbolKind;
   name: string;
@@ -41,6 +45,7 @@ export interface DocSymbol {
   implements: string[];
 }
 
+/** Contains the symbols and metadata used to render documentation for a source unit. */
 export interface DocumentationModel {
   title: string;
   language: string;
@@ -65,6 +70,7 @@ export interface DocumentationModel {
   indexLinks?: Array<{ name: string; href: string }>;
 }
 
+/** Configures Tree-sitter parsing and symbol extraction for a source language. */
 export interface LanguageDefinition {
   name: string;
   extensions: string[];
@@ -86,6 +92,7 @@ export interface LanguageDefinition {
   ) => DocSymbol | null;
 }
 
+/** Options for generating Markdown documentation from source text. */
 export interface GenerateOptions {
   source: string;
   language: string | LanguageDefinition;
@@ -97,6 +104,7 @@ export interface GenerateOptions {
   view?: Record<string, unknown>;
 }
 
+/** Options for generating documentation from a single source file. */
 export interface GenerateFileOptions extends Omit<GenerateOptions, "source"> {
   input: string;
   output?: string;
@@ -146,6 +154,7 @@ export interface OpenApiProviderOptions {
   agentDocs?: boolean;
 }
 
+/** Options for adding generated documentation to a VitePress sidebar. */
 export interface GenerateVitepressOptions {
   /**
    * The title for the VitePress sidebar configuration. Defaults to "API Reference".
@@ -159,6 +168,7 @@ export interface GenerateVitepressOptions {
   sidebar?: string | boolean;
 }
 
+/** Options for generating documentation for all supported files in a directory. */
 export interface GenerateDirectoryOptions {
   input: string;
   /** Directory where per-symbol Markdown files are written. Defaults to `<input>/docs`. */
@@ -183,6 +193,7 @@ export interface GenerateDirectoryOptions {
   vitepress?: GenerateVitepressOptions;
 }
 
+/** Describes a rendered documentation page and the model used to produce it. */
 export interface GeneratedPage {
   output: string;
   /** Present for single-symbol pages such as classes. */
@@ -208,6 +219,7 @@ export interface DocumentationContribution {
   data?: Record<string, unknown>;
 }
 
+/** Read-only source information supplied to a provider during analysis. */
 export interface ProviderAnalysisContext {
   input: string;
   output: string;
@@ -227,6 +239,7 @@ export interface ProviderGeneratedOutput {
   };
 }
 
+/** Documentation state supplied to a provider when generating additional files. */
 export interface ProviderGenerationContext extends ProviderAnalysisContext {
   model: DocumentationModel;
   pages: readonly GeneratedPage[];
@@ -237,12 +250,14 @@ export interface ProviderGenerationContext extends ProviderAnalysisContext {
 /** Extends directory generation with package- or framework-specific documentation. */
 export interface DocumentationProvider {
   name: string;
+  /** Analyze discovered sources and return symbols or provider-specific data. */
   analyze?: (
     context: ProviderAnalysisContext,
   ) =>
     | DocumentationContribution
     | void
     | Promise<DocumentationContribution | void>;
+  /** Generate additional documentation files from the completed model. */
   generate?: (
     context: ProviderGenerationContext,
   ) =>
@@ -251,6 +266,7 @@ export interface DocumentationProvider {
     | Promise<ProviderGeneratedOutput[] | void>;
 }
 
+/** Serializable symbol metadata written to the agent documentation manifest. */
 export interface AgentSymbolRecord {
   name: string;
   qualifiedName: string;
@@ -268,6 +284,7 @@ export interface AgentSymbolRecord {
   documentationPath: string;
 }
 
+/** Machine-readable manifest describing the generated package documentation. */
 export interface AgentManifest {
   schemaVersion: 1;
   package: string;
@@ -275,8 +292,10 @@ export interface AgentManifest {
   symbols: AgentSymbolRecord[];
 }
 
+/** Identifies a package registry supported by registry documentation generation. */
 export type PackageRegistry = "npm" | "pypi";
 
+/** Options for downloading and documenting a package from a supported registry. */
 export interface GenerateRegistryPackageOptions extends Omit<
   GenerateDirectoryOptions,
   "input"

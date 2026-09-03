@@ -12,6 +12,7 @@ export function agentDocumentationProvider(
 ): DocumentationProvider {
   return {
     name: agentDocumentationProviderName,
+    /** Generates and exposes the agent-readable documentation artifacts. */
     async generate({ output, model }): Promise<ProviderGeneratedOutput[]> {
       const result = await generateAgentDocumentation(output, model);
       onGenerated?.(result);

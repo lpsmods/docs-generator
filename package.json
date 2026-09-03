@@ -1,6 +1,6 @@
 {
   "name": "@lpsmods/docs-generator",
-  "version": "0.0.1-alpha.4",
+  "version": "0.0.1-alpha.5",
   "description": "Generate Markdown API documentation from source code with Tree-sitter and Mustache",
   "keywords": [
     "documentation",
@@ -42,25 +42,26 @@
     "gen:docs": "npm run build && node ./generate.js"
   },
   "dependencies": {
-    "extract-zip": "^2.0.1",
     "mustache": "^4.2.0",
     "pacote": "^21.5.1",
-    "tar": "^7.5.20",
+    "tar": "^7.5.22",
     "tree-sitter": "^0.21.1",
     "tree-sitter-javascript": "^0.23.1",
     "tree-sitter-python": "^0.21.0",
-    "tree-sitter-typescript": "^0.23.2"
+    "tree-sitter-typescript": "^0.23.2",
+    "yauzl": "^3.4.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/mustache": "^4.2.6",
-    "@types/node": "^22.0.0",
+    "@types/node": "^22.20.1",
     "@types/pacote": "^11.1.8",
-    "eslint": "^10.7.0",
-    "globals": "^17.7.0",
-    "typescript": "^5.7.0",
-    "typescript-eslint": "^8.65.0",
-    "vitest": "^4.1.10"
+    "@types/yauzl": "^3.4.0",
+    "eslint": "^10.9.1",
+    "globals": "^17.12.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.69.0",
+    "vitest": "^4.1.11"
   },
   "engines": {
     "node": ">=20"

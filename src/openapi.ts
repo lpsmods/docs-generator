@@ -10,6 +10,7 @@ import type {
   ProviderGenerationContext,
 } from "./types.js";
 
+/** Represents an arbitrary JSON object from an OpenAPI document. */
 type JsonObject = Record<string, unknown>;
 function readOpenApiTemplate(filename: string): string {
   try {
@@ -403,6 +404,7 @@ function createOpenApiProvider(
 ): DocumentationProvider {
   return {
     name: `openapi:${options.input}`,
+    /** Fetches the configured OpenAPI document and renders its provider outputs. */
     async generate(): Promise<ProviderGeneratedOutput[]> {
       const { document } = await fetchOpenApi(options.input, options.headers);
       onDocument?.(document);

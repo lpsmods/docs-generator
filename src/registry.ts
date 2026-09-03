@@ -1,16 +1,19 @@
 import { createHash } from "node:crypto";
+import { createWriteStream } from "node:fs";
 import { promises as fs } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import extractZip from "extract-zip";
+import { pipeline } from "node:stream/promises";
 import pacote from "pacote";
 import * as tar from "tar";
+import { openPromise, type Entry } from "yauzl";
 import { generateDirectory } from "./index.js";
 import type { GenerateRegistryPackageOptions } from "./types.js";
 
 const DEFAULT_MAX_DOWNLOAD = 100 * 1024 * 1024;
 const DEFAULT_CACHE_TTL = 24 * 60 * 60 * 1000;
 
+/** Metadata persisted alongside an extracted registry package cache entry. */
 interface CacheMetadata {
   registry: "npm" | "pypi";
   package: string;
@@ -83,6 +86,47 @@ async function extractedRoot(directory: string): Promise<string> {
   return entries.length === 1 && entries[0].isDirectory() ? path.join(directory, entries[0].name) : directory;
 }
 
+function secureZipDestination(root: string, entry: Entry): string {
+  const unixMode = entry.externalFileAttributes >>> 16;
+  if ((unixMode & 0o170000) === 0o120000) {
+    throw new Error(`ZIP archive contains a symbolic link: ${entry.fileName}`);
+  }
+  if (entry.fileName.startsWith("/") || /^[a-zA-Z]:/.test(entry.fileName)) {
+    throw new Error(`ZIP archive contains an absolute path: ${entry.fileName}`);
+  }
+  const destination = path.resolve(root, ...entry.fileName.split("/"));
+  const rootPrefix = `${path.resolve(root)}${path.sep}`;
+  if (!destination.startsWith(rootPrefix)) {
+    throw new Error(`ZIP archive entry escapes the destination: ${entry.fileName}`);
+  }
+  return destination;
+}
+
+export async function extractZipSecurely(archive: string, directory: string): Promise<void> {
+  const zip = await openPromise(archive, {
+    lazyEntries: true,
+    decodeStrings: true,
+    validateEntrySizes: true,
+    strictFileNames: true,
+  });
+  try {
+    for await (const entry of zip.eachEntry()) {
+      const destination = secureZipDestination(directory, entry);
+      if (entry.fileName.endsWith("/")) {
+        await fs.mkdir(destination, { recursive: true });
+        continue;
+      }
+      await fs.mkdir(path.dirname(destination), { recursive: true });
+      await pipeline(
+        await zip.openReadStreamPromise(entry),
+        createWriteStream(destination, { flags: "wx" }),
+      );
+    }
+  } finally {
+    zip.close();
+  }
+}
+
 async function matchingDirectory(parent: string, expectedName: string): Promise<string | undefined> {
   try {
     const entries = await fs.readdir(parent, { withFileTypes: true });
@@ -107,6 +151,7 @@ async function extractPyPI(spec: string, directory: string, maxDownloadBytes: nu
   const endpoint = parsed.version
     ? `https://pypi.org/pypi/${encodeURIComponent(parsed.name)}/${encodeURIComponent(parsed.version)}/json`
     : `https://pypi.org/pypi/${encodeURIComponent(parsed.name)}/json`;
+  /** Describes a downloadable artifact returned by the PyPI JSON API. */
   type FileInfo = { filename: string; packagetype: string; url: string; size?: number; digests?: { sha256?: string }; yanked?: boolean };
   const metadata = await fetchJson<{ info: { name: string; version: string; summary?: string }; urls: FileInfo[] }>(endpoint);
   const available = metadata.urls.filter(file => !file.yanked);
@@ -118,7 +163,7 @@ async function extractPyPI(spec: string, directory: string, maxDownloadBytes: nu
   const extracted = path.join(directory, "source");
   await fs.mkdir(extracted);
   await download(artifact.url, archive, artifact.digests?.sha256, maxDownloadBytes);
-  if (/\.(?:whl|zip)$/i.test(artifact.filename)) await extractZip(archive, { dir: extracted });
+  if (/\.(?:whl|zip)$/i.test(artifact.filename)) await extractZipSecurely(archive, extracted);
   else await tar.extract({ file: archive, cwd: extracted, strict: true });
   const distributionRoot = await extractedRoot(extracted);
   return {
